@@ -1,0 +1,14 @@
+{
+  "name": "infometro.cc",
+  "version": "1.0.0",
+  "description": "資訊地鐵站",
+  "author": "",
+  "homepage": "http://infometro.cc",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.1",
+    "html-metadata": "^1.6.3",
+    "request": "^2.81.0",
+    "url": "^0.11.0",
+    "util": "^0.10.3"
+  }
+}
