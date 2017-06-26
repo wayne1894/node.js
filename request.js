@@ -1,88 +1,92 @@
-var request = require("request");
+var http = require('http');
+var request = require('request');
 var cheerio = require("cheerio");
-var http = require("http");
+var scrape = require('html-metadata');
+
+var webshot = require('webshot');
+var fs      = require('fs');
 
 
-http.createServer(function(req,res){
-	res.writeHead(200 ,{'Content-Type' : 'application/json;charset=utf-8'});
-		var url=req.url.split("/?url=")[1];
-		parser_html(url,function(url_info){
-			res.end(JSON.stringify(url_info));
-		})
+
+http.createServer(function(req, res){
+  res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'});
+  try {
+    var url=req.url.split("?url=")[1];
+    
+//    parser2_img(url,function(base64){
+//       res.end("base64");
+//    })
+    
+    parser_html(url,function(url_info){
+      res.end(JSON.stringify(url_info));
+    })
+    
+//    parser_img(url,function(base64){
+//       res.end(base64);
+//    })
+  } catch(err) {
+    res.end("error1");
+  }
 }).listen(3000);
 
+function parser2_img(url,callback){
+  //https://www.npmjs.com/package/pageres
+  const Pageres = require('pageres');
 
+  const pageres = new Pageres()
+	.src('https://infometro.cc', ['1280x1024'])
+	.dest(__dirname)
+	.run()
+	.then(() => callback("base64"));
+}
+
+function parser_img(url,callback){
+  //https://github.com/brenden/node-webshot
+  
+  var options = {
+  screenSize: {
+    width: 1024
+  , height: 768
+  }
+  , shotSize: {
+    width: 1024/2
+  , height: 768/2
+  }
+  };
+  var renderStream = webshot('https://infometro.cc',options);
+
+  renderStream.on('data', function(data) {
+    var base64=data.toString('base64')
+    callback(base64);
+  });
+}
 function parser_html(url,callback){
-	request(url, function (error, response, html) {
-		$ = cheerio.load(html);
+  request(url, function (error,response,html) {
+      var url_info = {}
+      scrape(url,function(error, metadata){
+        if(error){
+          callback(error);
+        }else{
+          var url_info = {}
+          if(metadata.openGraph && metadata.openGraph.description){
+            url_info.description=metadata.openGraph.description;
+          }else if(metadata.general){
+            url_info.description=metadata.general.description;
+          }
 
-		var url_info = {};
-		var metas = $("meta");
-		for (var i = 0; i < metas.length; i++) {
-			if (metas.eq(i).attr("name") == "description") {
-				url_info.description = metas.eq(i).attr("content");
-			} else if (metas.eq(i).attr("property") == "og:description") {
-				url_info.og_description = metas.eq(i).attr("content");
-			} else if (metas.eq(i).attr("property") == "og:image") {
-				url_info.og_image = metas.eq(i).attr("content").split(",")[0];
-			} else if (metas.eq(i).attr("property") == "og:title") {
-				url_info.og_title = metas.eq(i).attr("content");
-			}
-		}
+          if(metadata.openGraph && metadata.openGraph.title){
+            url_info.title=metadata.openGraph.title;
+          }else if(metadata.general){
+            url_info.title=metadata.general.title;
+          }
+          
+          
+          callback(url_info)
+        }
+      })
+  });
+}
 
-		if (url_info.og_image == undefined) { //取fb images
-			if (html.indexOf("og:image") > -1) {
-				var og_html = html.split("og:image")[1].split(">")[0];
-				og_html = og_html.replace(/\'/gi, "\"");
-				og_html = og_html.split("content=\"")[1].split('"')[0];
-				url_info.og_image = og_html;
-			}
-		}
-
-		if (url_info.og_description == undefined) {
-			if (html.indexOf("og:description") > -1) {
-				var og_html = html.split("og:description")[1].split(">")[0];
-				og_html = og_html.replace(/\'/gi, "\"");
-				og_html = og_html.split("content=\"")[1].split('"')[0]
-				url_info.og_description = og_html;
-			}
-		}
-
-		if (url_info.og_title == undefined) {
-			if (html.indexOf("og:title") > -1) {
-				var og_html = html.split("og:title")[1].split(">")[0];
-				og_html = og_html.replace(/\'/gi, "\"");
-				og_html = og_html.split("content=\"")[1].split('"')[0]
-				url_info.og_title = og_html;
-			}
-		}
-
-		if (url_info.og_title) {
-			url_info.title = url_info.og_title;
-		} else {
-			url_info.title = $("title").html()
-			if (url_info.title == undefined) url_info.title = "";
-		}
-		if (url_info.og_description) {
-			url_info.description = url_info.og_description;
-		}
-		if (url_info.og_image) {
-			url_info.image = url_info.og_image;
-		}
-
-		delete url_info.og_title
-		delete url_info.og_description
-		delete url_info.og_image
-
-		url_info.url = url; //這個url代表是連結的url
-		url_info.url_parent = url.split("://")[1].split("/")[0];
-
-		//判斷是不是youtube
-		if (url.indexOf(".youtube.") > -1) {
-			url_info.youtube = url.split("?v=")[1].split("&")[0];
-		} else if (url.indexOf("youtu.be/") > -1) {
-			url_info.youtube = url.split("be/")[1];
-		}
-		callback(url_info)		
-	});	
+function print(a){
+  console.log(a)
 }
