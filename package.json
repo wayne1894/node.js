@@ -6,6 +6,8 @@
   "homepage": "http://infometro.cc",
   "dependencies": {
     "cheerio": "^1.0.0-rc.1",
+    "ejs": "^2.5.7",
+    "express": "^4.15.4",
     "html-metadata": "^1.6.3",
     "request": "^2.81.0",
     "url": "^0.11.0",

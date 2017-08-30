@@ -1,12 +1,14 @@
-var http = require("http");
-
-function onRequest(request, response) {
-  console.log("Request received.");
-  response.writeHead(200, {"Content-Type": "text/plain"});
-  response.write("Hello World");
-  response.end();
-}
-
-http.createServer(onRequest).listen(8888);
-
-console.log("Server has started.");
+var http = require('http');
+var querystring = require('querystring');
+var server = http.createServer(function(req, res) {
+  var post = '';
+  req.on('data', function(chunk) {
+    post += chunk;
+  });
+  req.on('end', function() {
+    post = querystring.parse(post);
+    res.write(post.title);
+    res.write(post.text);
+    res.end();
+  });
+}).listen(3000);
